@@ -1,0 +1,29 @@
+---
+Name: logentries
+Cartridge-Short-Name: LOGENTRIES
+Architecture: x86_64
+Display-Name: logentries 1.0
+Description: Logentries is a log monitor service
+Version: '1.0'
+Versions:
+- '1.0'
+Cartridge-Version: 0.0.1
+Cartridge-Vendor: gshipley
+License: GPL
+Vendor: gshipley
+Categories:
+- service
+- embedded
+Website: http://www.logentries.org
+Provides:
+- logentries-1.0
+- le
+Scaling:
+  Min: 1
+  Max: -1
+Group-Overrides:
+- components:
+  - logentries-1.0
+  - web_framework
+
+Source-Url: https://github.com/gshipley/openshift-cartridge-logentries.git

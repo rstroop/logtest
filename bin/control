@@ -1,0 +1,93 @@
+#!/bin/bash
+
+source $OPENSHIFT_CARTRIDGE_SDK_BASH
+
+OPENSHIFT_LOGENTRIES_PIDFILE=${OPENSHIFT_LOGENTRIES_DIR}run/logentries.pid
+OPENSHIFT_LOGENTRIESRC=${OPENSHIFT_DATA_DIR}.logentriesrc
+
+
+
+function start() {
+  if [ -z "${OPENSHIFT_LOGENTRIES_KEY}" ]; then
+    echo "ERROR: You need to set the OPENSHIFT_LOGENTRIES_KEY before starting logentires."
+    echo "       rhc env set OPENSHIFT_LOGENTRIES_KEY=yourKey"
+    echo "       rhc cartridge restart logentries -a ${OPENSHIFT_APP_NAME}"
+    echo
+  else
+    ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le register --hostname=${OPENSHIFT_APP_NAME} --account-key=${OPENSHIFT_LOGENTRIES_KEY}
+
+    # We don't want just OPENSHIFT_LOG_DIR as it could be a duplicate
+    for dir in `env | grep OPENSHIFT_.*_LOG_DIR`
+    do
+            logdir=${dir#*=}
+            for logf in `ls $logdir`
+            do
+                    # Check if its access or error log
+                    if [[ $logf == *log ]]
+                    then
+                            # Navigate to the log directory
+                            pushd $logdir > /dev/null
+
+                            # Follow any new logs and make sure existing ones are being followed
+                            ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le follow "$logf"
+
+                            popd > /dev/null
+                    fi
+            done
+    done
+
+    # Start monitoring the log files
+    ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le monitordaemon
+  fi
+}
+
+function stop() {
+  if [ -f "${OPENSHIFT_LOGENTRIES_PIDFILE}" ]; then
+    echo "Stopping logentries cartridge"
+    kill -15 `cat ${OPENSHIFT_LOGENTRIES_PIDFILE}`
+  fi
+}
+
+function restart() {
+    stop
+    start
+}
+
+function status() {
+  return 0
+}
+
+function reload() {
+    client_result "Reloading logentries cart"
+    kill -1 `cat ${OPENSHIFT_LOGENTRIES_PIDFILE}`
+    ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le monitordaemon
+}
+
+function tidy() {
+  echo "Nothing to clean for logentries."
+}
+
+case "$1" in
+  start) start ;;
+  stop) stop ;;
+  restart) restart ;;
+  status) status ;;
+  reload) reload ;;
+  tidy) tidy ;;
+  *) exit 0
+esac
+Now we need to create the install script. Create this file and insert the following code:
+
+#!/bin/bash -e
+
+source $OPENSHIFT_CARTRIDGE_SDK_BASH
+
+# Make sure the agent is an executable
+chmod +x ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le
+
+mkdir -p ${OPENSHIFT_LOGENTRIES_DIR}/run
+mkdir -p ${OPENSHIFT_LOGENTRIES_DIR}/log
+mkdir -p ${OPENSHIFT_LOGENTRIES_DIR}/var/events
+
+client_result "Logentries has been added to your applicaiton."
+client_result ""

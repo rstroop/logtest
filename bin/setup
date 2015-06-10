@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Make sure the agent is an executable
+chmod +x ${OPENSHIFT_LOGENTRIES_DIR}bin/logentries/le
